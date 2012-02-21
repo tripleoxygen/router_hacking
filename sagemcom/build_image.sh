@@ -8,14 +8,12 @@ ROOTFS_DIR="$1"
 KERNEL="$2"
 OUTPUT="$3"
 
-VERSION="0.1"
-
 function usage() {
 	echo "$0 <rootfs_dir> <kernel_file> <output_file>"
 	echo "e.g. $0 ./rootfs kernel.lzma.cfe output/firmware.bin"
 }
 
-echo "sagemcom firmware image build $VERSION"
+echo "sagemcom firmware image build"
 
 if [ $# -ne 3 ]; then
 	usage
