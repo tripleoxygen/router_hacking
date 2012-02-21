@@ -28,13 +28,11 @@
 
 #include "sagem_build.h"
 
-#define TAG_SIZE	256
-#define TAG_SIZE_CRC	(256 - 20)
 #define AES_BLOCK_SIZE	16
 #define	NUM_DATA	3
 #define CHUNK_SIZE	(64 * 1024)
 
-#define VERSION		"0.1"
+#define VERSION		"0.1.1"
 #define BANNER		"sagem_build v"VERSION"\n\n"
 
 enum idx {
@@ -75,8 +73,8 @@ static uint32_t get_aes_crc(uint32_t crc, const sagem_key *k)
 	return (uint32_t)((~crc32(~crc, buf[0], 16)) & 0xffffffffUL);
 }
 
-/* output is BCM-type (~crc) */
-static int get_file_crc32(const char *f, uint32_t *crc, uint32_t *sz)
+/* crc output is BCM-type (~crc) */
+static int get_segments_info(const char *f, uint32_t *crc, uint32_t *sz)
 {
 	size_t read;
 	FILE *fp;
@@ -170,6 +168,7 @@ static int write_tag(PFILE_TAG tag, const char *f)
 static void usage(char *app)
 {
 	printf("Usage:\t%s <image> <rootfs> <kernel> <security_code> <output_tag>\n\n", app);
+	printf("Beware: it's not recommended to use this app directly, use the script instead.\n");
 }
 
 int main(int argc, char *argv[])
@@ -208,8 +207,8 @@ int main(int argc, char *argv[])
 	printf("found key for security code '%s'\n", security_code);
 
 	for(i = 0; i < NUM_DATA; i++) {
-		if(get_file_crc32(argv[i + 1], &data_crc[i], &data_size[i])) {
-			fprintf(stderr, "failed getting crc32 of '%s'\n",
+		if(get_segments_info(argv[i + 1], &data_crc[i], &data_size[i])) {
+			fprintf(stderr, "failed getting info of segment '%s'\n",
 				argv[i + 1]);
 			return 1;
 		} else {
@@ -218,12 +217,21 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	assert((data_size[IDX_ROOTFS] + data_size[IDX_KERNEL]) == data_size[IDX_IMAGE]);
+	if((data_size[IDX_ROOTFS] + data_size[IDX_KERNEL]) != data_size[IDX_IMAGE]) {
+		fprintf(stderr, "final image size is different of segment's sum.\n");
+		return 1;
+	}
+
+	if(data_size[IDX_IMAGE] > MAX_IMAGE_SIZE) {
+		fprintf(stderr, "max image size is %u bytes.\n",
+			MAX_IMAGE_SIZE);
+		return 1;
+	}
 
 	build_tag(&tag, &data_crc[0], &data_size[0]);
 
 	crc = crc32(0, Z_NULL, 0);
-	crc = ~crc32(crc, (const Bytef *)&tag, TAG_SIZE_CRC);
+	crc = ~crc32(crc, (const Bytef *)&tag, sizeof(tag) - TAG_SIZE_CRC);
 
 	aes_crc = get_aes_crc(crc, key_entry);
 	tag.crc_header = swap(aes_crc);

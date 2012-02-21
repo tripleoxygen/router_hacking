@@ -24,6 +24,8 @@
 
 #include <stdint.h>
 
+#define MAX_IMAGE_SIZE	0x3d0000
+
 const uint32_t rootfs_addr = 0xbfc10100; /* 3217096960 */
 
 typedef struct _sagem_key {
@@ -49,6 +51,9 @@ const sagem_key sagem_keys[] = {
 	.key = "",
 	},
 };
+
+/* sizeof(tagValidationToken) + sizeof(uint32_t) */
+#define TAG_SIZE_CRC	20
 
 /* taken from GPLed code: shared/opensource/include/bcm963xx/bcmTag.h */
 typedef struct _FILE_TAG
