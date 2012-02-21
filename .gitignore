@@ -1,0 +1,11 @@
+*~
+*.a
+*.o
+*.so
+*.la
+*.lo
+*.bin
+tmp
+output
+*.sqsh
+
